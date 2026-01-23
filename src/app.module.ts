@@ -1,13 +1,43 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { FilesModule } from './files/files.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService} from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { User } from './users/entities/user.entity';
+
 
 @Module({
-  imports: [UsersModule, AuthModule, FilesModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get('DB_USERNAME'),
+        password: configService.get('DB_PASSWORD'),
+        database: configService.get('DB_DATABASE'),
+        entities: [User],
+        synchronize: configService.get('NODE_ENV') === 'development',
+        logging: configService.get('NODE_ENV') === 'development',
+      }),
+      inject: [ConfigService],
+    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, 
+        limit: 10,
+      },
+    ]),
+    AuthModule,
+    UsersModule,
+    FilesModule,
+  ],
 })
 export class AppModule {}
