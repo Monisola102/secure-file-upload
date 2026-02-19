@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { File } from 'src/files/entities/file.entity';
 
 @Entity('users')
 export class User {
@@ -18,11 +19,15 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ nullable: true }) 
+  name?: string;               
+
+  @OneToMany(() => File, (file) => file.user)
+  files: File[];
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-
 }

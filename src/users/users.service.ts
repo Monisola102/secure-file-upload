@@ -1,12 +1,12 @@
 import {
   Injectable,
-  ConflictException,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
-
+import { ERROR_MESSAGES } from '../common/constants';
 @Injectable()
 export class UsersService {
   constructor(
@@ -14,22 +14,8 @@ export class UsersService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async create(email: string, password: string): Promise<User> {
-    const existingUser = await this.userRepo.findOne({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('User already exists');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = this.userRepo.create({
-      email,
-      password: hashedPassword,
-    });
-
+  async createUser(userData: Partial<User>): Promise<User> {
+    const user = this.userRepo.create(userData);
     return this.userRepo.save(user);
   }
 
@@ -37,18 +23,24 @@ export class UsersService {
     return this.userRepo.findOne({ where: { email } });
   }
 
-  async findById(id: string): Promise<User | null> {
-    return this.userRepo.findOne({ where: { id } });
+  async findById(id: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+    }
+    return user;
   }
 
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<User | null> {
-    const user = await this.findByEmail(email);
-    if (!user) return null;
+  async updateUser(id: string, attrs: Partial<User>): Promise<User> {
+    const user = await this.findById(id);
+    const updatedUser = { ...user, ...attrs };
+    return this.userRepo.save(updatedUser);
+  }
 
-    const isValid = await bcrypt.compare(password, user.password);
-    return isValid ? user : null;
+  async deleteUser(id: string): Promise<void> {
+    const result = await this.userRepo.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+    }
   }
 }
