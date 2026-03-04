@@ -14,6 +14,7 @@ export const ERROR_MESSAGES = {
   INVALID_FILE_SIGNATURE: 'File appears to be corrupted or malicious',
   FILE_UPLOAD_FAILED: 'File upload failed',
   FILE_NOT_FOUND: 'File not found',
+  FILE_ALREADY_EXISTS: 'File already uploaded',
   SUSPICIOUS_FILENAME: 'Invalid filename detected',
   CSRF_TOKEN_INVALID: 'Invalid or missing CSRF token',
   RATE_LIMIT_EXCEEDED: 'Too many requests. Please try again later',

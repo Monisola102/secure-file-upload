@@ -5,9 +5,11 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
+@Index(['userId', 'hash'], { unique: true })
 @Entity('files')
 export class File {
   @PrimaryGeneratedColumn('uuid')
@@ -18,6 +20,9 @@ export class File {
 
   @Column({ unique: true })
   storedName: string;
+
+  @Column()
+  hash: string;
 
   @Column()
   mimeType: string;

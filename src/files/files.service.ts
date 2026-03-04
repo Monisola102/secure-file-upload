@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,7 @@ import { FileValidator } from './utils/file-validator.util';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promises as fsPromises } from 'fs';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class FilesService {
@@ -35,6 +37,17 @@ export class FilesService {
     const sanitizedOriginalName = FileValidator.sanitizeFilename(
       file.originalname,
     );
+
+    // calculate a content hash so we can detect duplicate uploads even if the filename differs
+    const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+
+    // prevent duplicate uploads of identical content by the same user
+    const existing = await this.fileRepo.findOne({
+      where: { userId, hash },
+    });
+    if (existing) {
+      return existing;
+    }
     const uniqueFilename = FileValidator.generateUniqueFilename(
       sanitizedOriginalName,
     );
@@ -51,6 +64,7 @@ export class FilesService {
         size: file.size,
         path: filePath,
         userId,
+        hash,
       });
 
       return await this.fileRepo.save(fileEntity);
@@ -97,7 +111,6 @@ export class FilesService {
       );
     }
   }
-
   async downloadFile(
     fileId: string,
     userId: string,
